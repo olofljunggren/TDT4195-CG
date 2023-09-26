@@ -1,12 +1,12 @@
 // Uncomment these following global attributes to silence most warnings of "low" interest:
-/*
+
 #![allow(dead_code)]
 #![allow(non_snake_case)]
 #![allow(unreachable_code)]
 #![allow(unused_mut)]
 #![allow(unused_unsafe)]
 #![allow(unused_variables)]
-*/
+
 extern crate nalgebra_glm as glm;
 use std::{ mem, ptr, os::raw::c_void };
 use std::thread;
@@ -48,15 +48,100 @@ fn offset<T>(n: u32) -> *const c_void {
     (n * mem::size_of::<T>() as u32) as *const T as *const c_void
 }
 
-// Get a null pointer (equivalent to an offset of 0)
-// ptr::null()
+// Creates a vector of vertices needed to construct a circle in z=0 plane
+fn create_circle(n: u32) -> Vec<f32> {
+    let mut vector: Vec<f32> = vec![];
 
+    vector.push(0.0);
+    vector.push(0.0);
+    vector.push(0.0);
+
+    for i in 1..n+1 {
+        let angle = 2.0*3.14159265*(i as f32)/(n as f32);
+        let x = angle.cos();
+        let y = angle.sin();
+        let z = 0.0;
+        vector.push(x);
+        vector.push(y);
+        vector.push(z);
+        
+        }
+
+        return vector
+}
+
+// Generates indices for the vertices in create_circle
+fn genereate_circle_indices(n: u32) -> Vec<u32> {
+    let mut center_index: u32 = 0;
+    let mut vector: Vec<u32> = vec![];
+
+
+    for i in 0..(n) {
+        vector.push(center_index);
+        vector.push(i+1);
+        if i == n-1{
+            vector.push(1);
+        }
+        else{
+            vector.push(i+2);
+        }
+        }
+
+        return vector
+}
+
+
+//let mut vertices: [f32; 9] = [1.0, 3.0, 2.0, 5.0, 4.0, 3.0, 2.0, 6.0, 3.0];
 
 // == // Generate your VAO here
-unsafe fn create_vao(vertices: &Vec<f32>, indices: &Vec<u32>) -> u32 {
-    // Implement me!
+unsafe fn create_vao(vertices: &Vec<f32>, indices: &Vec<u32>, colours: &Vec<f32>) -> u32 { 
 
-    // Also, feel free to delete comments :)
+    // c++ syntax :
+    // void glGenVertexArrays(int count, unsigned int* arrayIDs);  VAO
+    // void glBindVertexArray(unsigned int vertexArrayID);         BIND VAO
+    // void glGenBuffers(int count, unsigned int* bufferIDs);      Create VBO
+    // void glBindBuffer(enum target, unsigned int bufferID);      Bind VBO
+    // void glBufferData(enum target, size_t size, void* data, enum usage); Buffer input data
+    // let byte_size_of_f32: usize = mem::size_of::<f32>();
+
+    
+    
+
+    let mut array_id: u32 = 1;
+    unsafe {
+            gl::GenVertexArrays(1, &mut array_id);
+            gl::BindVertexArray(array_id);
+
+            let mut vertices_buffer_id: u32 = 0;
+            gl::GenBuffers(1, &mut vertices_buffer_id);
+            assert!(vertices_buffer_id != 0);            
+            gl::BindBuffer(gl::ARRAY_BUFFER, vertices_buffer_id);
+            gl::BufferData(gl::ARRAY_BUFFER, byte_size_of_array(vertices), pointer_to_array(vertices), gl::STATIC_DRAW);
+            println!("Size of vertices array: {}", byte_size_of_array(vertices));
+    
+            // * Tells vertex shader where to get input data
+            gl::VertexAttribPointer(0, 3, gl::FLOAT, gl::FALSE, 3*size_of::<f32>(), offset::<u32>(0));
+            gl::EnableVertexAttribArray(0);
+
+            // * Generate an IBO, bind it and fill it with data
+            let mut index_buffer_id: u32 = 0;
+            gl::GenBuffers(1, &mut index_buffer_id);
+            gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, index_buffer_id);
+            gl::BufferData(gl::ELEMENT_ARRAY_BUFFER, byte_size_of_array(indices), pointer_to_array(indices), gl::STATIC_DRAW);
+            println!("Size of indices array: {}", byte_size_of_array(indices));
+
+             // * Generate an RGBA, bind it and fill it with data
+             let mut colour_id: u32 = 0;
+            gl::GenBuffers(1, &mut colour_id);
+            gl::BindBuffer(gl::ARRAY_BUFFER, colour_id);
+            gl::BufferData(gl::ARRAY_BUFFER, byte_size_of_array(colours), pointer_to_array(colours), gl::STATIC_DRAW);
+            println!("Size of colours array: {}", byte_size_of_array(colours));
+            gl::VertexAttribPointer(1, 4, gl::FLOAT, gl::FALSE, 4*size_of::<f32>(), offset::<u32>(0));
+            gl::EnableVertexAttribArray(1);
+
+
+            }
+    return array_id;
 
     // This should:
     // * Generate a VAO and bind it
@@ -66,14 +151,12 @@ unsafe fn create_vao(vertices: &Vec<f32>, indices: &Vec<u32>) -> u32 {
     // * Generate a IBO and bind it
     // * Fill it with data
     // * Return the ID of the VAO
-
-    0
 }
 
 
 fn main() {
     // Set up the necessary objects to deal with windows and event handling
-    let el = glutin::event_loop::EventLoop::new();
+    let el   = glutin::event_loop::EventLoop::new();
     let wb = glutin::window::WindowBuilder::new()
         .with_title("Gloom-rs")
         .with_resizable(true)
@@ -111,7 +194,7 @@ fn main() {
             c
         };
 
-        let mut window_aspect_ratio = INITIAL_SCREEN_W as f32 / INITIAL_SCREEN_H as f32;
+        //let mut window_aspect_ratio = INITIAL_SCREEN_W as f32 / INITIAL_SCREEN_H as f32;
 
         // Set up openGL
         unsafe {
@@ -132,26 +215,171 @@ fn main() {
 
         // == // Set up your VAO around here
 
-        let my_vao = unsafe { 1337 };
+        // ------------Set 1 of vertices and indices---------------
+        // let vertices: Vec<f32> = vec![-0.6,-0.6, -10.0, 
+        //                                0.6,-0.6, -10.0, 
+        //                                0.0, 0.6, -10.0, 
+        //                                1.0, 1.0, -10.0, 
+        //                                2.0, 1.5, -10.0,
+        //                                0.0, 2.0, -10.0,
+        //                               -1.0, 1.0, -10.0,
+        //                               -1.0, 2.0, -10.0,
+        //                               -2.0, 1.0, -10.0,
+        //                               -2.0,-2.0, -10.0,
+        //                                0.0,-2.0, -10.0,
+        //                               -1.0,-1.0, -10.0,
+        //                                1.0,-2.0, -10.0,
+        //                                3.0, 0.0, -10.0,
+        //                                1.0, 0.0, -10.0];
+        // let indices: Vec<u32> = vec![0, 1, 2,
+        //                             3, 4, 5,
+        //                             6, 7, 8,
+        //                             9, 10, 11,
+        //                             12, 13 ,14];
+        // let colours: Vec<f32> = vec![
+        //                         1.0,0.0,0.0,1.0,
+        //                         1.0,1.0,0.0,1.0,
+        //                         1.0,0.0,1.0,1.0,
+        //                         1.0,0.0,0.0,1.0,
+        //                         1.0,1.0,0.0,1.0,
+        //                         0.0,1.0,1.0,1.0,
+        //                         1.0,0.0,0.0,1.0,
+        //                         1.0,1.0,0.0,1.0,
+        //                         0.0,1.0,0.0,1.0,
+        //                         1.0,0.0,1.0,1.0,
+        //                         0.0,1.0,1.0,1.0,
+        //                         0.0,1.0,0.0,1.0,
+        //                         0.0,1.0,0.0,1.0,
+        //                         1.0,0.0,1.0,1.0,
+        //                         0.0,1.0,1.0,1.0,
+        //                         ];
+                                            
 
+
+
+        // ------------Set 2 of vertices and indices---------------
+        // let vertices: Vec<f32> = vec![0.6, -0.8, -1.2,
+        //                             0.0, 0.4, 0.0,
+        //                             -0.8, -0.2, 1.2];
+        // let indices: Vec<u32> = vec![0, 1, 2];
+        // let colours: Vec<f32> = vec![
+        //         1.0,0.0,0.0,1.0,
+        //         1.0,0.0,0.0,1.0,
+        //         1.0,0.0,0.0,1.0,
+        //         ];
+
+        // ------------Set 3 of vertices and indices---------------
+        // let vertices: Vec<f32> = create_circle(40);
+        // let indices: Vec<u32> = genereate_circle_indices(40);
+
+        // ----------Print elements in vertices and indices--------  
+        // for element in indices.iter() {
+        //     println!("{}", element);
+        // }
+        // for element in vertices.iter() {
+        //     println!("{}", element);
+        // }
+
+
+        // ------------Set 4 of vertices and indices---------------
+        // let vertices: Vec<f32> = vec![  0.0, -0.6, 0.0, 
+        //                                 1.2, -0.6, 0.0, 
+        //                                 1.6,  0.6, 0.0,
+        //                                -0.6, -0.6, 1.0, 
+        //                                 0.6, -0.6, 1.0, 
+        //                                 1.0,  0.6, 1.0, 
+        //                                 0.2,  0.0, 2.0, 
+        //                                 1.4,  0.0, 2.0, 
+        //                                 1.8,  1.2, 2.0];
+        // let indices: Vec<u32> = vec![
+        //                             6, 7, 8,
+        //                             3, 4, 5,
+        //                             0, 1, 2,
+        //                                     ];
+        // let colours: Vec<f32> = vec![
+        //                         1.0,0.0,0.0,0.5,
+        //                         1.0,0.0,0.0,0.5,
+        //                         1.0,0.0,0.0,0.5,
+        //                         0.0,1.0,0.0,0.5,
+        //                         0.0,1.0,0.0,0.5,
+        //                         0.0,1.0,0.0,0.5,
+        //                         0.0,0.0,1.0,0.5,
+        //                         0.0,0.0,1.0,0.5,
+        //                         0.0,0.0,1.0,0.5];
+
+        // ------------Set 5 of vertices and indices---------------
+        // let vertices: Vec<f32> = vec![  0.0,  2.0, 3.0, 
+        //                                -2.0,  1.0, 3.0, 
+        //                                 1.0, -2.0, 3.0,];
+        // let indices: Vec<u32> = vec![
+        //                             0, 1, 2,];
+        // let colours: Vec<f32> = vec![
+        //                         1.0,0.0,0.0,0.5,
+        //                         1.0,0.0,0.0,0.5,
+        //                         1.0,0.0,0.0,0.5,];
+
+        // ------------Set 6 Cube---------------
+        let vertices: Vec<f32> = vec![
+            // front
+            -1.0, -1.0,  -7.0,
+             1.0, -1.0,  -7.0,
+             1.0,  1.0,  -7.0,
+            -1.0,  1.0,  -7.0,
+            // back
+            -1.0, -1.0,  -5.0,
+             1.0, -1.0,  -5.0,
+             1.0,  1.0,  -5.0,
+            -1.0,  1.0,  -5.0,
+        ];
+        
+        let colours: Vec<f32> = vec![
+            // front
+            1.0, 0.0, 0.0, 1.0,
+            1.0, 0.0, 0.0, 1.0,
+            1.0, 0.0, 0.0, 1.0,
+            1.0, 0.0, 0.0, 1.0,
+            // back  
+            0.0, 0.0, 1.0, 1.0,
+            0.0, 0.0, 1.0, 1.0,
+            0.0, 0.0, 1.0, 1.0,
+            0.0, 0.0, 1.0, 1.0,
+        ];
+
+        let indices: Vec<u32> = vec![
+            7, 6, 5,
+            5, 4, 7,
+            0, 1, 2,
+            2, 3, 0,
+            1, 5, 6,
+            2, 1, 6,
+            4, 0, 3,
+            3, 7, 4,
+            1, 4, 5,
+            4, 1, 0,
+            3, 2, 6,
+            6, 7, 3
+        ];
+           
+
+        let my_vao = unsafe {
+            create_vao(&vertices, &indices, &colours) // notice the lack of a semicolon: an implicit return
+            };
 
         // == // Set up your shaders here
-
-        // Basic usage of shader helper:
-        // The example code below creates a 'shader' object.
-        // It which contains the field `.program_id` and the method `.activate()`.
-        // The `.` in the path is relative to `Cargo.toml`.
-        // This snippet is not enough to do the exercise, and will need to be modified (outside
-        // of just using the correct path), but it only needs to be called once
-
-        /*
-        let simple_shader = unsafe {
+        let _shader = unsafe {
             shader::ShaderBuilder::new()
-                .attach_file("./path/to/simple/shader.file")
+                .attach_file("./shaders/simple.frag")
+                .attach_file("./shaders/simple.vert")
                 .link()
+                .activate()
         };
-        */
 
+        let mut x_rotation: f32 = 0.0;
+        let mut y_rotation: f32 = 0.0;
+        
+        let mut x_position: f32 = 0.0;
+        let mut y_position: f32 = 0.0;
+        let mut z_position: f32 = 0.0;
 
         // Used to demonstrate keyboard handling for exercise 2.
         let mut _arbitrary_number = 0.0; // feel free to remove
@@ -163,7 +391,7 @@ fn main() {
         loop {
             // Compute time passed since the previous frame and since the start of the program
             let now = std::time::Instant::now();
-            let elapsed = now.duration_since(first_frame_time).as_secs_f32();
+            let _elapsed = now.duration_since(first_frame_time).as_secs_f32();
             let delta_time = now.duration_since(previous_frame_time).as_secs_f32();
             previous_frame_time = now;
 
@@ -171,7 +399,7 @@ fn main() {
             if let Ok(mut new_size) = window_size.lock() {
                 if new_size.2 {
                     context.resize(glutin::dpi::PhysicalSize::new(new_size.0, new_size.1));
-                    window_aspect_ratio = new_size.0 as f32 / new_size.1 as f32;
+                    //window_aspect_ratio = new_size.0 as f32 / new_size.1 as f32;
                     (*new_size).2 = false;
                     println!("Window was resized to {}x{}", new_size.0, new_size.1);
                     unsafe { gl::Viewport(0, 0, new_size.0 as i32, new_size.1 as i32); }
@@ -185,11 +413,52 @@ fn main() {
                         // The `VirtualKeyCode` enum is defined here:
                         //    https://docs.rs/winit/0.25.0/winit/event/enum.VirtualKeyCode.html
 
+                        // VirtualKeyCode::A => {
+                        //     _arbitrary_number += delta_time;
+                        // }
+                        // VirtualKeyCode::D => {
+                        //     _arbitrary_number -= delta_time;
+                        // }
+
+                        VirtualKeyCode::Up => {
+                            x_rotation += 2.0*delta_time;
+                        }
+                        VirtualKeyCode::Down => {
+                            x_rotation -= 2.0*delta_time;
+                        }
+                        VirtualKeyCode::Left => {
+                            y_rotation -= 2.0*delta_time;
+                        }
+                        VirtualKeyCode::Right => {
+                            y_rotation += 2.0*delta_time; 
+                        }
                         VirtualKeyCode::A => {
-                            _arbitrary_number += delta_time;
+                            x_position += 5.0*delta_time*y_rotation.cos();
+                            z_position += 5.0*delta_time*y_rotation.sin();
                         }
                         VirtualKeyCode::D => {
-                            _arbitrary_number -= delta_time;
+                            x_position -= 5.0*delta_time*y_rotation.cos();
+                            z_position -= 5.0*delta_time*y_rotation.sin();
+                        }
+                        VirtualKeyCode::W => {
+                            x_position -= 5.0*delta_time*x_rotation.sin()*y_rotation.sin();
+                            y_position -= 5.0*delta_time*x_rotation.cos();
+                            z_position += 5.0*delta_time*x_rotation.sin()*y_rotation.cos();
+                        }
+                        VirtualKeyCode::S => {
+                            x_position += 5.0*delta_time*x_rotation.sin()*y_rotation.sin();
+                            y_position += 5.0*delta_time*x_rotation.cos();
+                            z_position -= 5.0*delta_time*x_rotation.sin()*y_rotation.cos();
+                        }
+                        VirtualKeyCode::LShift => {
+                            x_position -= 5.0*delta_time*x_rotation.cos()*y_rotation.sin();
+                            y_position += 5.0*delta_time*x_rotation.sin();
+                            z_position += 5.0*delta_time*x_rotation.cos()*y_rotation.cos();
+                        }
+                        VirtualKeyCode::Space => {
+                            x_position += 5.0*delta_time*x_rotation.cos()*y_rotation.sin();
+                            y_position -= 5.0*delta_time*x_rotation.sin();
+                            z_position -= 5.0*delta_time*y_rotation.cos()*x_rotation.cos();
                         }
 
 
@@ -206,8 +475,19 @@ fn main() {
 
                 *delta = (0.0, 0.0); // reset when done
             }
-
+            
             // == // Please compute camera transforms here (exercise 2 & 3)
+            if x_rotation > 3.1415927/2.0
+            {
+                x_rotation = 3.1415927/2.0;
+                println!("Stopp!");
+            }
+            else if x_rotation < -3.1415927/2.0
+            {
+                x_rotation = -3.1415927/2.0;
+                println!("Stopp!");
+            }
+
 
 
             unsafe {
@@ -215,11 +495,39 @@ fn main() {
                 gl::ClearColor(0.035, 0.046, 0.078, 1.0); // night sky, full opacity
                 gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
+                let mut aspect: f32 = 1.0;
+                if let Ok(size) = window_size.lock() {
+                    gl::Uniform2i(2, size.0 as i32, size.1 as i32);
+                    aspect = size.0 as f32/size.1 as f32; 
+                }
+                gl::Uniform1f(3, _elapsed);
+
+                // Transformations
+                let identity: glm::Mat4 = glm::identity();
+                let scaler: glm::Mat4 = glm::scaling(&glm::vec3(0.5, 0.5, 0.5));
+
+                let perspective: glm::Mat4 =
+                    glm::perspective(aspect, 
+                        (3.1415927 as f32)/(2.0 as f32),
+                        1.0, 
+                        100.0);
+
+                let rotation_matrix_x: glm::Mat4 = glm::rotation(x_rotation, &glm::vec3(1.0, 0.0, 0.0));
+                let rotation_matrix_y: glm::Mat4 = glm::rotation(y_rotation, &glm::vec3(0.0, 1.0, 0.0)); 
+                let total_rotation: glm::Mat4 = rotation_matrix_x * rotation_matrix_y;
+
+                let translation: glm::Mat4 = glm::translation(&glm::vec3(x_position, y_position, z_position));
+                
+                let transformation: glm::Mat4 =  perspective * total_rotation * translation * scaler * identity;
+        
+
+                gl::UniformMatrix4fv(4, 1, gl::FALSE, transformation.as_ptr());
+
 
                 // == // Issue the necessary gl:: commands to draw your scene here
-
-
-
+                gl::BindVertexArray(my_vao);
+                gl::FrontFace(gl::CW); 
+                gl::DrawElements(gl::TRIANGLES, indices.len() as i32, gl::UNSIGNED_INT, 0 as *const c_void)
             }
 
             // Display the new color buffer on the display
