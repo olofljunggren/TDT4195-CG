@@ -14,6 +14,7 @@ use std::sync::{Mutex, Arc, RwLock};
 
 mod shader;
 mod util;
+mod mesh;
 
 use glutin::event::{Event, WindowEvent, DeviceEvent, KeyboardInput, ElementState::{Pressed, Released}, VirtualKeyCode::{self, *}};
 use glutin::event_loop::ControlFlow;
@@ -319,47 +320,54 @@ fn main() {
         //                         1.0,0.0,0.0,0.5,];
 
         // ------------Set 6 Cube---------------
-        let vertices: Vec<f32> = vec![
-            // front
-            -1.0, -1.0,  -7.0,
-             1.0, -1.0,  -7.0,
-             1.0,  1.0,  -7.0,
-            -1.0,  1.0,  -7.0,
-            // back
-            -1.0, -1.0,  -5.0,
-             1.0, -1.0,  -5.0,
-             1.0,  1.0,  -5.0,
-            -1.0,  1.0,  -5.0,
-        ];
+        // let vertices: Vec<f32> = vec![
+        //     // front
+        //     -1.0, -1.0,  -7.0,
+        //      1.0, -1.0,  -7.0,
+        //      1.0,  1.0,  -7.0,
+        //     -1.0,  1.0,  -7.0,
+        //     // back
+        //     -1.0, -1.0,  -5.0,
+        //      1.0, -1.0,  -5.0,
+        //      1.0,  1.0,  -5.0,
+        //     -1.0,  1.0,  -5.0,
+        // ];
         
-        let colours: Vec<f32> = vec![
-            // front
-            1.0, 0.0, 0.0, 1.0,
-            1.0, 0.0, 0.0, 1.0,
-            1.0, 0.0, 0.0, 1.0,
-            1.0, 0.0, 0.0, 1.0,
-            // back  
-            0.0, 0.0, 1.0, 1.0,
-            0.0, 0.0, 1.0, 1.0,
-            0.0, 0.0, 1.0, 1.0,
-            0.0, 0.0, 1.0, 1.0,
-        ];
+        // let colours: Vec<f32> = vec![
+        //     // front
+        //     1.0, 0.0, 0.0, 1.0,
+        //     1.0, 0.0, 0.0, 1.0,
+        //     1.0, 0.0, 0.0, 1.0,
+        //     1.0, 0.0, 0.0, 1.0,
+        //     // back  
+        //     0.0, 0.0, 1.0, 1.0,
+        //     0.0, 0.0, 1.0, 1.0,
+        //     0.0, 0.0, 1.0, 1.0,
+        //     0.0, 0.0, 1.0, 1.0,
+        // ];
 
-        let indices: Vec<u32> = vec![
-            7, 6, 5,
-            5, 4, 7,
-            0, 1, 2,
-            2, 3, 0,
-            1, 5, 6,
-            2, 1, 6,
-            4, 0, 3,
-            3, 7, 4,
-            1, 4, 5,
-            4, 1, 0,
-            3, 2, 6,
-            6, 7, 3
-        ];
-           
+        // let indices: Vec<u32> = vec![
+        //     7, 6, 5,
+        //     5, 4, 7,
+        //     0, 1, 2,
+        //     2, 3, 0,
+        //     1, 5, 6,
+        //     2, 1, 6,
+        //     4, 0, 3,
+        //     3, 7, 4,
+        //     1, 4, 5,
+        //     4, 1, 0,
+        //     3, 2, 6,
+        //     6, 7, 3
+        // ];
+
+        //let index_count = indices.len() as i32;   
+
+        let terrain: mesh::Mesh = mesh::Terrain::load("./resources/lunarsurface.obj");
+        let colours = terrain.colors;
+        let indices = terrain.indices;
+        let vertices = terrain.vertices;
+        let index_count = terrain.index_count;
 
         let my_vao = unsafe {
             create_vao(&vertices, &indices, &colours) // notice the lack of a semicolon: an implicit return
@@ -388,6 +396,7 @@ fn main() {
         // The main rendering loop
         let first_frame_time = std::time::Instant::now();
         let mut previous_frame_time = first_frame_time;
+
         loop {
             // Compute time passed since the previous frame and since the start of the program
             let now = std::time::Instant::now();
@@ -510,7 +519,7 @@ fn main() {
                     glm::perspective(aspect, 
                         (3.1415927 as f32)/(2.0 as f32),
                         1.0, 
-                        100.0);
+                        1000.0);
 
                 let rotation_matrix_x: glm::Mat4 = glm::rotation(x_rotation, &glm::vec3(1.0, 0.0, 0.0));
                 let rotation_matrix_y: glm::Mat4 = glm::rotation(y_rotation, &glm::vec3(0.0, 1.0, 0.0)); 
@@ -527,7 +536,7 @@ fn main() {
                 // == // Issue the necessary gl:: commands to draw your scene here
                 gl::BindVertexArray(my_vao);
                 gl::FrontFace(gl::CW); 
-                gl::DrawElements(gl::TRIANGLES, indices.len() as i32, gl::UNSIGNED_INT, 0 as *const c_void)
+                gl::DrawElements(gl::TRIANGLES, index_count, gl::UNSIGNED_INT, 0 as *const c_void)
             }
 
             // Display the new color buffer on the display
