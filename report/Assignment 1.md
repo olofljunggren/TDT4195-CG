@@ -39,8 +39,7 @@ Done
 ### c: Define and instantiate a VAO and draw triangles
 Done
 
-![
-    My first five triangles!
+![My first five triangles!
 ](images/FIVE_TRIANGLES.png)
 
 
@@ -49,7 +48,7 @@ Geometry and Theory [1.5 point]
 
 ### Draw a signle triangle and explain result
 ![
-    My first five triangles!
+    Clipped traingle.
 ](images/CLIPPED_TRIANGLE.png)
 1. What is the name of this phenomenon?
     - This phenomenon is called clipping.
@@ -85,7 +84,7 @@ What are the responsibilities of each of them?
 4. Why is it common to use an index buffer to specify which vertices should be
 connected into triangles, as opposed to relying on the order in which the vertices
 are specified in the vertex buffer(s)?
-    - The index buffer is used because it simplifies the process of using the same vertices multiple times. Therefore it is more efficient. It also makes it easier to have diffrent dimensions of the vertices connected, ex. a line can be made with two of them. And bodies get "water tight".
+    - The index buffer is used because it simplifies the process of using the same vertices multiple times. Therefore it is more efficient. Furthermore bodies get "water tight".
 
 5. While the last input of gl::VertexAttribPointer() is a pointer, we usually pass
 in a null pointer. Describe a situation in which you would pass a non-zero value
@@ -94,6 +93,25 @@ into this function.
 
 ### Modify the shaders
 1. Mirror/flip the whole scene both horizontally and vertically at the same time and 2. Change the colour of the drawn triangle(s) to a different colour.
+    - In order to make flip the axises I constructed a scaling matrix and scaled x and y values with -1. Then i multiplied the matrix with the position coordinates in the vertex shader. To change colour, I just changed the values in the fragment shader. I figured the colour vec4 being output was (R, G, B, Opacity).
 ![
-    My first five triangles!
+    Flipped triangles!
 ](images/flipped.png)
+
+## Task 3
+Optional Bonus Challenges [up to 0.2 bonus points]
+
+### Checkerboard
+In order to draw a checkerboard, I did some maths in the fragment shader using floor function and gl_FragCoord.
+
+### Circle
+To draw a circle I began with creating vertices in a circle and then connect these into triangles. This one was made in the "main.rs". After that I also made a smaller green circle using gl_FragCoord and calculating distance from center in the fragment shader.
+
+### Sine
+Finally I made two sine functions using y=sin(x) and some abs-logic, all coded in the fragment shader.
+
+![
+    Bonus tasks!
+](images/checkerboardsinecircle.png)
+
+

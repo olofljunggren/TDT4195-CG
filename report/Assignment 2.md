@@ -33,11 +33,16 @@ Task 1: Per-Vertex Colors [0.5 points]
 
 ### a: Extend function create_vao to enable texture specification
 Done
+
 ### b: Render a scene containing at least 3 different triangles, with diffrent vertex colours
 For every fragment in a triangle OpenGL interpolates the colour value depending on the three verticies colours. This is done automatically by a mathematical formula which describes every point inside the triangle as a linear combination of the verticies.
+
 ![
     Five triangles with interpolated colours.
 ](images/interpolatedcolours.png)
+
+
+
 
 
 ## Task 2
@@ -68,6 +73,9 @@ Alpha Blending and Depth [0.5 points]
 ](images/swappedz.png)
 
 
+
+
+
 ## Task 3
 The Affine Transformation Matrix [0.7 points]
 
@@ -75,4 +83,56 @@ The Affine Transformation Matrix [0.7 points]
 Done
 
 ### b: Change matrix varaibles to describe their function in the transformation matrix.
+In the matrix: $$ \left(\begin{array}{cccc} 
+a & b & 0 & c\\
+d & e & 0 & f\\
+0 & 0 & 1 & 0\\
+0 & 0 & 0 & 1 \\
+\end{array}\right) $$
+The "a" corresponds to a scale for the x-axis. Every x-value gets "a" times larger. Similarly the "e" scales the y-axis. Negative values on these also mirror the axis. The "c" is the part translating the x-values in 3d homogenous coordinates. Correspnding value is "f" to translate the y coorinates. The  last two ones, "b" and "d" are shearing effects. "b" is shearing the x-axis with respect to every y-value. "d" is shearing the y-axis with respect to every x-value. 
+
+### c: Why can you be certain that none of the transformations observed were rotations?
+This is because rotations needs at least two parameters to be changed. If we only change one parameter we can't get that needed symmetri in the matrix.
+
+
+
+
+
+## Task 4
+Combinations of Transformations [3.3 points]
+
+### a: Pass by matrix as an uniform to the vertex shader.
+Done
+
+### b: Apply a perspective projection onto the scene. 
+Done. I also set the near clipping plane to 1 and the far to 100. Corresponds to -1 to -100 since the perspective projection is flipping the z-axis.
+
+### c: Implement a camera which can move x, y, z and rotate around x (pitch) and y (yaw).
+
+1. I created 5 variables to store camera data. Position for x, y, z and the two rotations, yaw and pitch. 
+
+2. To implement a controller for movement and rotation I used the built in handler. I used wasd to move up, down, left and right. Space to move backwards and left shift to move forward. The arrow buttons were used for rotations, up and down corresponds to the pitch movement which I also capped to 90 degrees. I also used the delta_time variable.
+
+3. For every new frame I created these needed matrices to construct the entire tranformation. I then multiplied in the following order: Perspective * Rotation * Translation * Scale *  Identity.
+
+
+
+
+
+## Task 5
+Optional Bonus Challenges [at most 0.3 points]
+
+### a: Make movement more intuitive.
+This task was accomplished by multiplying some sinusoidal terms when updating the positions. 
+
+### b: Testing different interpolation qualifiers.
+We can see the first one appears more smooth. This is because it is perspective corrected and calculated by barycentric interpolation. This is done by dividing the triangle into three subtriangles and using normalization. Basically the perspective works because the colour of each vertex is normalized by the depth for the smooth qualifier.
+
+![
+    Smooth interpolation.
+](images/smooth.png)
+
+![
+    Noperspective interpolation.
+](images/noperspective.png)
 
