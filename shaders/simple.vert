@@ -2,10 +2,12 @@
 
 in layout(location = 0) vec3 position;
 in layout(location = 1) vec4 colour;
-uniform layout(location=2) ivec2 WindowSize;
-uniform layout(location=3) float time;
-uniform layout(location=4) mat4 transformation;
+in layout(location = 2) vec3 normal;
+uniform layout(location=3) ivec2 WindowSize;
+uniform layout(location=4) float time;
+uniform layout(location=5) mat4 transformation;
 out layout(location=0) vec4 VertexColour;
+out layout(location=1) vec3 VertexNormal;
 
 void main()
 {
@@ -18,10 +20,12 @@ void main()
 
     vec4 homogenous_coordinates = vec4(position, 1);
     vec4 transformed = transformation*homogenous_coordinates;
-    
     gl_Position = vec4(transformed); 
 
+    //VertexColour = vec4(normalize(normal),colour[3]);
     VertexColour = colour;
+    VertexNormal = normalize(normal);
+
 }
 
 // RENDERDOC for debug

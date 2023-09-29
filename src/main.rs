@@ -95,7 +95,7 @@ fn genereate_circle_indices(n: u32) -> Vec<u32> {
 //let mut vertices: [f32; 9] = [1.0, 3.0, 2.0, 5.0, 4.0, 3.0, 2.0, 6.0, 3.0];
 
 // == // Generate your VAO here
-unsafe fn create_vao(vertices: &Vec<f32>, indices: &Vec<u32>, colours: &Vec<f32>) -> u32 { 
+unsafe fn create_vao(vertices: &Vec<f32>, indices: &Vec<u32>, colours: &Vec<f32>, normals: &Vec<f32>) -> u32 { 
 
     // c++ syntax :
     // void glGenVertexArrays(int count, unsigned int* arrayIDs);  VAO
@@ -139,6 +139,15 @@ unsafe fn create_vao(vertices: &Vec<f32>, indices: &Vec<u32>, colours: &Vec<f32>
             println!("Size of colours array: {}", byte_size_of_array(colours));
             gl::VertexAttribPointer(1, 4, gl::FLOAT, gl::FALSE, 4*size_of::<f32>(), offset::<u32>(0));
             gl::EnableVertexAttribArray(1);
+
+            // * Generate an normals objecct, bind it and fill it with data
+            let mut normal_id: u32 = 0;
+            gl::GenBuffers(1, &mut normal_id);
+            gl::BindBuffer(gl::ARRAY_BUFFER, normal_id);
+            gl::BufferData(gl::ARRAY_BUFFER, byte_size_of_array(normals), pointer_to_array(normals), gl::STATIC_DRAW);
+            println!("Size of normals array: {}", byte_size_of_array(normals));
+            gl::VertexAttribPointer(2, 3, gl::FLOAT, gl::FALSE, 3*size_of::<f32>(), offset::<u32>(0));
+            gl::EnableVertexAttribArray(2);
 
 
             }
@@ -363,14 +372,68 @@ fn main() {
 
         //let index_count = indices.len() as i32;   
 
-        let terrain: mesh::Mesh = mesh::Terrain::load("./resources/lunarsurface.obj");
-        let colours = terrain.colors;
-        let indices = terrain.indices;
-        let vertices = terrain.vertices;
-        let index_count = terrain.index_count;
 
-        let my_vao = unsafe {
-            create_vao(&vertices, &indices, &colours) // notice the lack of a semicolon: an implicit return
+        // Load lunar surface object
+        let terrain_mesh: mesh::Mesh = mesh::Terrain::load("./resources/lunarsurface.obj");
+        let terrain_colours: Vec<f32> = terrain_mesh.colors;
+        let terrain_indices: Vec<u32> = terrain_mesh.indices;
+        let terrain_vertices: Vec<f32> = terrain_mesh.vertices;
+        let terrain_index_count: i32 = terrain_mesh.index_count;
+        let terrain_normals: Vec<f32> = terrain_mesh.normals;
+
+        let lunar_surface: u32 = unsafe {
+            create_vao(&terrain_vertices, &terrain_indices, &terrain_colours, &terrain_normals) 
+            };
+        
+        // Load entire helicopter object
+        let helicopter_mesh: mesh::Helicopter = mesh::Helicopter::load("./resources/helicopter.obj");
+        let body_mesh: mesh::Mesh = helicopter_mesh.body;
+        let door_mesh: mesh::Mesh = helicopter_mesh.door;
+        let main_rotor_mesh: mesh::Mesh= helicopter_mesh.main_rotor;
+        let tail_rotor_mesh: mesh::Mesh = helicopter_mesh.tail_rotor;
+
+        // Load body mesh
+        let body_colours: Vec<f32> = body_mesh.colors;
+        let body_indices: Vec<u32> = body_mesh.indices;
+        let body_vertices: Vec<f32> = body_mesh.vertices;
+        let body_index_count: i32 = body_mesh.index_count;
+        let body_normals: Vec<f32> = body_mesh.normals;
+
+        let body: u32 = unsafe {
+            create_vao(&body_vertices, &body_indices, &body_colours, &body_normals)
+            };
+
+        // Load door mesh
+        let door_colours: Vec<f32> = door_mesh.colors;
+        let door_indices: Vec<u32> = door_mesh.indices;
+        let door_vertices: Vec<f32> = door_mesh.vertices;
+        let door_index_count: i32 = door_mesh.index_count;
+        let door_normals: Vec<f32> = door_mesh.normals;
+
+        let door: u32 = unsafe {
+            create_vao(&door_vertices, &door_indices, &door_colours, &door_normals)
+            };
+    
+        // Load main_rotor mesh
+        let main_rotor_colours: Vec<f32> = main_rotor_mesh.colors;
+        let main_rotor_indices: Vec<u32> = main_rotor_mesh.indices;
+        let main_rotor_vertices: Vec<f32> = main_rotor_mesh.vertices;
+        let main_rotor_index_count: i32 = main_rotor_mesh.index_count;
+        let main_rotor_normals: Vec<f32> = main_rotor_mesh.normals;
+
+        let main_rotor: u32 = unsafe {
+            create_vao(&main_rotor_vertices, &main_rotor_indices, &main_rotor_colours, &main_rotor_normals)
+            };
+
+        // Load tail_rotor mesh
+        let tail_rotor_colours: Vec<f32> = tail_rotor_mesh.colors;
+        let tail_rotor_indices: Vec<u32> = tail_rotor_mesh.indices;
+        let tail_rotor_vertices: Vec<f32> = tail_rotor_mesh.vertices;
+        let tail_rotor_index_count: i32 = tail_rotor_mesh.index_count;
+        let tail_rotor_normals: Vec<f32> = tail_rotor_mesh.normals;
+
+        let tail_rotor: u32 = unsafe {
+            create_vao(&tail_rotor_vertices, &tail_rotor_indices, &tail_rotor_colours, &tail_rotor_normals)
             };
 
         // == // Set up your shaders here
@@ -506,10 +569,10 @@ fn main() {
 
                 let mut aspect: f32 = 1.0;
                 if let Ok(size) = window_size.lock() {
-                    gl::Uniform2i(2, size.0 as i32, size.1 as i32);
+                    gl::Uniform2i(3, size.0 as i32, size.1 as i32);
                     aspect = size.0 as f32/size.1 as f32; 
                 }
-                gl::Uniform1f(3, _elapsed);
+                gl::Uniform1f(4, _elapsed);
 
                 // Transformations
                 let identity: glm::Mat4 = glm::identity();
@@ -530,13 +593,26 @@ fn main() {
                 let transformation: glm::Mat4 =  perspective * total_rotation * translation * scaler * identity;
         
 
-                gl::UniformMatrix4fv(4, 1, gl::FALSE, transformation.as_ptr());
+                gl::UniformMatrix4fv(5, 1, gl::FALSE, transformation.as_ptr());
 
 
+                gl::FrontFace(gl::CCW); 
                 // == // Issue the necessary gl:: commands to draw your scene here
-                gl::BindVertexArray(my_vao);
-                gl::FrontFace(gl::CW); 
-                gl::DrawElements(gl::TRIANGLES, index_count, gl::UNSIGNED_INT, 0 as *const c_void)
+                gl::BindVertexArray(lunar_surface);
+                gl::DrawElements(gl::TRIANGLES, terrain_index_count, gl::UNSIGNED_INT, 0 as *const c_void);
+
+                gl::BindVertexArray(body);
+                gl::DrawElements(gl::TRIANGLES, body_index_count, gl::UNSIGNED_INT, 0 as *const c_void);
+
+                gl::BindVertexArray(door);
+                gl::DrawElements(gl::TRIANGLES, door_index_count, gl::UNSIGNED_INT, 0 as *const c_void);
+
+                gl::BindVertexArray(main_rotor);
+                gl::DrawElements(gl::TRIANGLES, main_rotor_index_count, gl::UNSIGNED_INT, 0 as *const c_void);
+
+                gl::BindVertexArray(tail_rotor);
+                gl::DrawElements(gl::TRIANGLES, tail_rotor_index_count, gl::UNSIGNED_INT, 0 as *const c_void);
+                
             }
 
             // Display the new color buffer on the display
