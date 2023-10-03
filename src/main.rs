@@ -15,7 +15,9 @@ use std::sync::{Mutex, Arc, RwLock};
 mod shader;
 mod util;
 mod mesh;
+mod scene_graph;
 
+use scene_graph::SceneNode;
 use glutin::event::{Event, WindowEvent, DeviceEvent, KeyboardInput, ElementState::{Pressed, Released}, VirtualKeyCode::{self, *}};
 use glutin::event_loop::ControlFlow;
 
@@ -373,16 +375,16 @@ fn main() {
         //let index_count = indices.len() as i32;   
 
 
-        // Load lunar surface object
+        // Load lunar_surface object
         let terrain_mesh: mesh::Mesh = mesh::Terrain::load("./resources/lunarsurface.obj");
-        let terrain_colours: Vec<f32> = terrain_mesh.colors;
-        let terrain_indices: Vec<u32> = terrain_mesh.indices;
-        let terrain_vertices: Vec<f32> = terrain_mesh.vertices;
-        let terrain_index_count: i32 = terrain_mesh.index_count;
-        let terrain_normals: Vec<f32> = terrain_mesh.normals;
+        let lunar_surface_colours: Vec<f32> = terrain_mesh.colors;
+        let lunar_surface_indices: Vec<u32> = terrain_mesh.indices;
+        let lunar_surface_vertices: Vec<f32> = terrain_mesh.vertices;
+        let lunar_surface_index_count: i32 = terrain_mesh.index_count;
+        let lunar_surface_normals: Vec<f32> = terrain_mesh.normals;
 
         let lunar_surface: u32 = unsafe {
-            create_vao(&terrain_vertices, &terrain_indices, &terrain_colours, &terrain_normals) 
+            create_vao(&lunar_surface_vertices, &lunar_surface_indices, &lunar_surface_colours, &lunar_surface_normals) 
             };
         
         // Load entire helicopter object
@@ -435,6 +437,33 @@ fn main() {
         let tail_rotor: u32 = unsafe {
             create_vao(&tail_rotor_vertices, &tail_rotor_indices, &tail_rotor_colours, &tail_rotor_normals)
             };
+
+
+        let mut terrain_root_node = SceneNode::new();
+        let mut lunar_surface_node = SceneNode::from_vao(lunar_surface, lunar_surface_index_count);
+        terrain_root_node.add_child(&lunar_surface_node);
+
+        let mut helicopter1_root_node = SceneNode::new();
+        let mut body_node = SceneNode::from_vao(body, body_index_count);
+        helicopter1_root_node.add_child(&body_node);
+
+        let door_node = SceneNode::from_vao(door, door_index_count);
+        body_node.add_child(&door_node);
+
+        let main_rotor_node = SceneNode::from_vao(main_rotor, main_rotor_index_count);
+        body_node.add_child(&main_rotor_node);
+
+        let tail_rotor_node = SceneNode::from_vao(tail_rotor, tail_rotor_index_count);
+        body_node.add_child(&tail_rotor_node);
+
+        terrain_root_node.add_child(&helicopter1_root_node);
+
+        terrain_root_node.print();
+        helicopter1_root_node.print();
+        body_node.print();
+
+
+        
 
         // == // Set up your shaders here
         let _shader = unsafe {
@@ -599,7 +628,7 @@ fn main() {
                 gl::FrontFace(gl::CCW); 
                 // == // Issue the necessary gl:: commands to draw your scene here
                 gl::BindVertexArray(lunar_surface);
-                gl::DrawElements(gl::TRIANGLES, terrain_index_count, gl::UNSIGNED_INT, 0 as *const c_void);
+                gl::DrawElements(gl::TRIANGLES, lunar_surface_index_count, gl::UNSIGNED_INT, 0 as *const c_void);
 
                 gl::BindVertexArray(body);
                 gl::DrawElements(gl::TRIANGLES, body_index_count, gl::UNSIGNED_INT, 0 as *const c_void);
