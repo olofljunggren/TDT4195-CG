@@ -93,6 +93,41 @@ fn genereate_circle_indices(n: u32) -> Vec<u32> {
         return vector
 }
 
+unsafe fn draw_scene(node: &scene_graph::SceneNode,
+    view_projection_matrix: &glm::Mat4,
+    transformation_so_far: &glm::Mat4,
+    shader: &shader::Shader) {
+    // Perform any logic needed before drawing the node
+    
+    let mut local_transform: glm::Mat4 = glm::identity();
+
+    let translaton_to_origin: glm::Mat4 = glm::translation(&-node.reference_point);
+    let rotation_matrix_x: glm::Mat4 = glm::rotation(node.rotation.x, &glm::vec3(1.0, 0.0, 0.0)); 
+    let rotation_matrix_y: glm::Mat4 = glm::rotation(node.rotation.y, &glm::vec3(0.0, 1.0, 0.0)); 
+    let rotation_matrix_z: glm::Mat4 = glm::rotation(node.rotation.z, &glm::vec3(0.0, 0.0, 1.0)); 
+    let translaton_back: glm::Mat4 = glm::translation(&node.reference_point);
+    local_transform = translaton_back * rotation_matrix_y * translaton_to_origin * local_transform;
+    // node.position
+    // node.rotation
+    // node.scale
+    // node.reference_point
+
+    // Check if node is drawable, if so: set uniforms, bind VAO and draw VAO
+    if node.index_count != -1 {
+        gl::BindVertexArray(node.vao_id);
+        let location: i32 = shader.get_uniform_location("transformation");
+        let total_transformation = view_projection_matrix*transformation_so_far*local_transform;
+        gl::UniformMatrix4fv(location, 1, gl::FALSE, total_transformation.as_ptr());
+        gl::DrawElements(gl::TRIANGLES, node.index_count, gl::UNSIGNED_INT, 0 as *const c_void);
+    }
+    if node.get_n_children() > 0 {
+        // Recurse
+        for &child in &node.children {
+            draw_scene(&*child, view_projection_matrix, &(transformation_so_far*local_transform), shader);
+        }
+    }
+}
+
 
 //let mut vertices: [f32; 9] = [1.0, 3.0, 2.0, 5.0, 4.0, 3.0, 2.0, 6.0, 3.0];
 
@@ -439,26 +474,27 @@ fn main() {
             };
 
 
-        let mut terrain_root_node = SceneNode::new();
+        let mut scene_node = SceneNode::new();
         let mut lunar_surface_node = SceneNode::from_vao(lunar_surface, lunar_surface_index_count);
-        terrain_root_node.add_child(&lunar_surface_node);
-
+        scene_node.add_child(&lunar_surface_node);
+        
         let mut helicopter1_root_node = SceneNode::new();
+        lunar_surface_node.add_child(&helicopter1_root_node);
         let mut body_node = SceneNode::from_vao(body, body_index_count);
         helicopter1_root_node.add_child(&body_node);
 
-        let door_node = SceneNode::from_vao(door, door_index_count);
+        let mut door_node = SceneNode::from_vao(door, door_index_count);
         body_node.add_child(&door_node);
 
-        let main_rotor_node = SceneNode::from_vao(main_rotor, main_rotor_index_count);
+        let mut main_rotor_node = SceneNode::from_vao(main_rotor, main_rotor_index_count);
         body_node.add_child(&main_rotor_node);
 
-        let tail_rotor_node = SceneNode::from_vao(tail_rotor, tail_rotor_index_count);
+        let mut tail_rotor_node = SceneNode::from_vao(tail_rotor, tail_rotor_index_count);
+        tail_rotor_node.reference_point = glm::vec3(0.35, 2.3, 10.4);
         body_node.add_child(&tail_rotor_node);
 
-        terrain_root_node.add_child(&helicopter1_root_node);
 
-        terrain_root_node.print();
+        scene_node.print();
         helicopter1_root_node.print();
         body_node.print();
 
@@ -466,13 +502,13 @@ fn main() {
         
 
         // == // Set up your shaders here
-        let _shader = unsafe {
+        let shader_object: shader::Shader = unsafe {
             shader::ShaderBuilder::new()
                 .attach_file("./shaders/simple.frag")
                 .attach_file("./shaders/simple.vert")
                 .link()
-                .activate()
         };
+        unsafe { shader_object.activate(); }
 
         let mut x_rotation: f32 = 0.0;
         let mut y_rotation: f32 = 0.0;
@@ -513,13 +549,6 @@ fn main() {
                     match key {
                         // The `VirtualKeyCode` enum is defined here:
                         //    https://docs.rs/winit/0.25.0/winit/event/enum.VirtualKeyCode.html
-
-                        // VirtualKeyCode::A => {
-                        //     _arbitrary_number += delta_time;
-                        // }
-                        // VirtualKeyCode::D => {
-                        //     _arbitrary_number -= delta_time;
-                        // }
 
                         VirtualKeyCode::Up => {
                             x_rotation += 2.0*delta_time;
@@ -589,7 +618,7 @@ fn main() {
                 println!("Stopp!");
             }
 
-
+            tail_rotor_node.rotation.x += 0.1*_elapsed;
 
             unsafe {
                 // Clear the color and depth buffers
@@ -606,7 +635,6 @@ fn main() {
                 // Transformations
                 let identity: glm::Mat4 = glm::identity();
                 let scaler: glm::Mat4 = glm::scaling(&glm::vec3(0.5, 0.5, 0.5));
-
                 let perspective: glm::Mat4 =
                     glm::perspective(aspect, 
                         (3.1415927 as f32)/(2.0 as f32),
@@ -616,32 +644,27 @@ fn main() {
                 let rotation_matrix_x: glm::Mat4 = glm::rotation(x_rotation, &glm::vec3(1.0, 0.0, 0.0));
                 let rotation_matrix_y: glm::Mat4 = glm::rotation(y_rotation, &glm::vec3(0.0, 1.0, 0.0)); 
                 let total_rotation: glm::Mat4 = rotation_matrix_x * rotation_matrix_y;
-
                 let translation: glm::Mat4 = glm::translation(&glm::vec3(x_position, y_position, z_position));
-                
-                let transformation: glm::Mat4 =  perspective * total_rotation * translation * scaler * identity;
-        
-
-                gl::UniformMatrix4fv(5, 1, gl::FALSE, transformation.as_ptr());
-
+                let view_projection: glm::Mat4 =  perspective * total_rotation * translation * scaler * identity;
 
                 gl::FrontFace(gl::CCW); 
                 // == // Issue the necessary gl:: commands to draw your scene here
-                gl::BindVertexArray(lunar_surface);
-                gl::DrawElements(gl::TRIANGLES, lunar_surface_index_count, gl::UNSIGNED_INT, 0 as *const c_void);
+                // gl::BindVertexArray(lunar_surface);
+                // gl::DrawElements(gl::TRIANGLES, lunar_surface_index_count, gl::UNSIGNED_INT, 0 as *const c_void);
 
-                gl::BindVertexArray(body);
-                gl::DrawElements(gl::TRIANGLES, body_index_count, gl::UNSIGNED_INT, 0 as *const c_void);
+                // gl::BindVertexArray(body);
+                // gl::DrawElements(gl::TRIANGLES, body_index_count, gl::UNSIGNED_INT, 0 as *const c_void);
 
-                gl::BindVertexArray(door);
-                gl::DrawElements(gl::TRIANGLES, door_index_count, gl::UNSIGNED_INT, 0 as *const c_void);
+                // gl::BindVertexArray(door);
+                // gl::DrawElements(gl::TRIANGLES, door_index_count, gl::UNSIGNED_INT, 0 as *const c_void);
 
-                gl::BindVertexArray(main_rotor);
-                gl::DrawElements(gl::TRIANGLES, main_rotor_index_count, gl::UNSIGNED_INT, 0 as *const c_void);
+                // gl::BindVertexArray(main_rotor);
+                // gl::DrawElements(gl::TRIANGLES, main_rotor_index_count, gl::UNSIGNED_INT, 0 as *const c_void);
 
-                gl::BindVertexArray(tail_rotor);
-                gl::DrawElements(gl::TRIANGLES, tail_rotor_index_count, gl::UNSIGNED_INT, 0 as *const c_void);
+                // gl::BindVertexArray(tail_rotor);
+                // gl::DrawElements(gl::TRIANGLES, tail_rotor_index_count, gl::UNSIGNED_INT, 0 as *const c_void);
                 
+                draw_scene(&scene_node, &view_projection,&identity, &shader_object);
             }
 
             // Display the new color buffer on the display
