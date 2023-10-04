@@ -16,6 +16,7 @@ mod shader;
 mod util;
 mod mesh;
 mod scene_graph;
+mod toolbox;
 
 use scene_graph::SceneNode;
 use glutin::event::{Event, WindowEvent, DeviceEvent, KeyboardInput, ElementState::{Pressed, Released}, VirtualKeyCode::{self, *}};
@@ -102,11 +103,12 @@ unsafe fn draw_scene(node: &scene_graph::SceneNode,
     let mut local_transform: glm::Mat4 = glm::identity();
 
     let translaton_to_origin: glm::Mat4 = glm::translation(&-node.reference_point);
+    let translaton_back: glm::Mat4 = glm::translation(&node.reference_point);
+    let translate_to_position: glm::Mat4 = glm::translation(&node.position);
     let rotation_matrix_x: glm::Mat4 = glm::rotation(node.rotation.x, &glm::vec3(1.0, 0.0, 0.0)); 
     let rotation_matrix_y: glm::Mat4 = glm::rotation(node.rotation.y, &glm::vec3(0.0, 1.0, 0.0)); 
     let rotation_matrix_z: glm::Mat4 = glm::rotation(node.rotation.z, &glm::vec3(0.0, 0.0, 1.0)); 
-    let translaton_back: glm::Mat4 = glm::translation(&node.reference_point);
-    local_transform = translaton_back * rotation_matrix_y * translaton_to_origin * local_transform;
+    local_transform = translate_to_position * translaton_back * rotation_matrix_x * rotation_matrix_y * rotation_matrix_z * translaton_to_origin * local_transform;
     // node.position
     // node.rotation
     // node.scale
@@ -116,8 +118,11 @@ unsafe fn draw_scene(node: &scene_graph::SceneNode,
     if node.index_count != -1 {
         gl::BindVertexArray(node.vao_id);
         let location: i32 = shader.get_uniform_location("transformation");
-        let total_transformation = view_projection_matrix*transformation_so_far*local_transform;
-        gl::UniformMatrix4fv(location, 1, gl::FALSE, total_transformation.as_ptr());
+        let MVP = view_projection_matrix*transformation_so_far*local_transform;
+        gl::UniformMatrix4fv(location, 1, gl::FALSE, MVP.as_ptr());
+        let location2: i32 = shader.get_uniform_location("model_matrix");
+        let model_matrix = transformation_so_far*local_transform;
+        gl::UniformMatrix4fv(location2, 1, gl::FALSE, model_matrix.as_ptr());
         gl::DrawElements(gl::TRIANGLES, node.index_count, gl::UNSIGNED_INT, 0 as *const c_void);
     }
     if node.get_n_children() > 0 {
@@ -487,16 +492,12 @@ fn main() {
         body_node.add_child(&door_node);
 
         let mut main_rotor_node = SceneNode::from_vao(main_rotor, main_rotor_index_count);
+        main_rotor_node.reference_point = glm::vec3(0.0, 2.0, 0.0);
         body_node.add_child(&main_rotor_node);
 
         let mut tail_rotor_node = SceneNode::from_vao(tail_rotor, tail_rotor_index_count);
         tail_rotor_node.reference_point = glm::vec3(0.35, 2.3, 10.4);
         body_node.add_child(&tail_rotor_node);
-
-
-        scene_node.print();
-        helicopter1_root_node.print();
-        body_node.print();
 
 
         
@@ -528,7 +529,7 @@ fn main() {
         loop {
             // Compute time passed since the previous frame and since the start of the program
             let now = std::time::Instant::now();
-            let _elapsed = now.duration_since(first_frame_time).as_secs_f32();
+            let elapsed = now.duration_since(first_frame_time).as_secs_f32();
             let delta_time = now.duration_since(previous_frame_time).as_secs_f32();
             previous_frame_time = now;
 
@@ -551,10 +552,10 @@ fn main() {
                         //    https://docs.rs/winit/0.25.0/winit/event/enum.VirtualKeyCode.html
 
                         VirtualKeyCode::Up => {
-                            x_rotation += 2.0*delta_time;
+                            x_rotation -= 2.0*delta_time;
                         }
                         VirtualKeyCode::Down => {
-                            x_rotation -= 2.0*delta_time;
+                            x_rotation += 2.0*delta_time;
                         }
                         VirtualKeyCode::Left => {
                             y_rotation -= 2.0*delta_time;
@@ -618,7 +619,35 @@ fn main() {
                 println!("Stopp!");
             }
 
-            tail_rotor_node.rotation.x += 0.1*_elapsed;
+            // Movement
+            // body_node.rotation.y += 0.0001*elapsed;
+            // if body_node.rotation.y > 2.0*3.141592{
+            //     body_node.rotation.y -= 2.0*3.141592;
+            // }
+            // body_node.position.x = 10.0*(elapsed).cos();
+            // if body_node.position.x > 100.0{
+            //     body_node.position.x -= 100.0;
+            // }
+            // body_node.position.y = 10.0*(elapsed).sin();
+            // if body_node.position.y > 100.0{
+            //     body_node.position.y -= 100.0;
+            // }
+            let path: toolbox::Heading = toolbox::simple_heading_animation(elapsed);
+
+            body_node.rotation.x = path.pitch;
+            body_node.rotation.y = path.yaw;
+            body_node.rotation.z = path.roll;
+            body_node.position.x = path.x;
+            body_node.position.z = path.z;
+            
+            tail_rotor_node.rotation.x += 0.01*elapsed;
+            if tail_rotor_node.rotation.x > 2.0*3.141592{
+                tail_rotor_node.rotation.x -= 2.0*3.141592;
+            }
+            main_rotor_node.rotation.y += 0.01*elapsed;
+            if main_rotor_node.rotation.y > 2.0*3.141592{
+                main_rotor_node.rotation.y -= 2.0*3.141592;
+            }
 
             unsafe {
                 // Clear the color and depth buffers
@@ -630,7 +659,7 @@ fn main() {
                     gl::Uniform2i(3, size.0 as i32, size.1 as i32);
                     aspect = size.0 as f32/size.1 as f32; 
                 }
-                gl::Uniform1f(4, _elapsed);
+                gl::Uniform1f(4, elapsed);
 
                 // Transformations
                 let identity: glm::Mat4 = glm::identity();
@@ -646,6 +675,7 @@ fn main() {
                 let total_rotation: glm::Mat4 = rotation_matrix_x * rotation_matrix_y;
                 let translation: glm::Mat4 = glm::translation(&glm::vec3(x_position, y_position, z_position));
                 let view_projection: glm::Mat4 =  perspective * total_rotation * translation * scaler * identity;
+                
 
                 gl::FrontFace(gl::CCW); 
                 // == // Issue the necessary gl:: commands to draw your scene here

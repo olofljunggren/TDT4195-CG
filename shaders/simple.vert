@@ -6,6 +6,7 @@ in layout(location = 2) vec3 normal;
 uniform layout(location=3) ivec2 WindowSize;
 uniform layout(location=4) float time;
 uniform layout(location=5) mat4 transformation;
+uniform layout(location=6) mat4 model_matrix;
 out layout(location=0) vec4 VertexColour;
 out layout(location=1) vec3 VertexNormal;
 
@@ -17,6 +18,8 @@ void main()
     // vec4 col3 = vec4(0.0, 0.0, 1.0, 0.0);
     // vec4 col4 = vec4(0.0, 0.0, 0.0, 1.0);
     // mat4 transformation = mat4(col1, col2, col3, col4); // sets columns of matrix n
+    mat3 normal_matrix = mat3(model_matrix);
+    vec3 new_normal = normalize(normal_matrix*normal);
 
     vec4 homogenous_coordinates = vec4(position, 1);
     vec4 transformed = transformation*homogenous_coordinates;
@@ -24,7 +27,7 @@ void main()
 
     //VertexColour = vec4(normalize(normal),colour[3]);
     VertexColour = colour;
-    VertexNormal = normalize(normal);
+    VertexNormal = normalize(new_normal);
 
 }
 
