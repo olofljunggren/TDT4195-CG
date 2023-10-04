@@ -1,6 +1,6 @@
-./target
+target
 /.vscode
-./vendor
+vendor
 *.pdf
 *.html
 source.zip
