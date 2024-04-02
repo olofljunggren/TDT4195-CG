@@ -23,8 +23,8 @@ use glutin::event::{Event, WindowEvent, DeviceEvent, KeyboardInput, ElementState
 use glutin::event_loop::ControlFlow;
 
 // initial window size
-const INITIAL_SCREEN_W: u32 = 1500;
-const INITIAL_SCREEN_H: u32 = 900;
+const INITIAL_SCREEN_W: u32 = 1920;
+const INITIAL_SCREEN_H: u32 = 1080;
 
 // == // Helper functions to make interacting with OpenGL a little bit prettier. You *WILL* need these! // == //
 
@@ -98,8 +98,8 @@ unsafe fn draw_scene(node: &scene_graph::SceneNode,
     view_projection_matrix: &glm::Mat4,
     transformation_so_far: &glm::Mat4,
     shader: &shader::Shader) {
-        
     // Perform any logic needed before drawing the node
+    
     let mut local_transform: glm::Mat4 = glm::identity();
 
     let translaton_to_origin: glm::Mat4 = glm::translation(&-node.reference_point);
@@ -109,6 +109,10 @@ unsafe fn draw_scene(node: &scene_graph::SceneNode,
     let rotation_matrix_y: glm::Mat4 = glm::rotation(node.rotation.y, &glm::vec3(0.0, 1.0, 0.0)); 
     let rotation_matrix_z: glm::Mat4 = glm::rotation(node.rotation.z, &glm::vec3(0.0, 0.0, 1.0)); 
     local_transform = translate_to_position * translaton_back * rotation_matrix_x * rotation_matrix_y * rotation_matrix_z * translaton_to_origin * local_transform;
+    // node.position
+    // node.rotation
+    // node.scale
+    // node.reference_point
 
     // Check if node is drawable, if so: set uniforms, bind VAO and draw VAO
     if node.index_count != -1 {
@@ -137,6 +141,17 @@ unsafe fn draw_scene(node: &scene_graph::SceneNode,
 
 // == // Generate your VAO here
 unsafe fn create_vao(vertices: &Vec<f32>, indices: &Vec<u32>, colours: &Vec<f32>, normals: &Vec<f32>) -> u32 { 
+
+    // c++ syntax :
+    // void glGenVertexArrays(int count, unsigned int* arrayIDs);  VAO
+    // void glBindVertexArray(unsigned int vertexArrayID);         BIND VAO
+    // void glGenBuffers(int count, unsigned int* bufferIDs);      Create VBO
+    // void glBindBuffer(enum target, unsigned int bufferID);      Bind VBO
+    // void glBufferData(enum target, size_t size, void* data, enum usage); Buffer input data
+    // let byte_size_of_f32: usize = mem::size_of::<f32>();
+
+    
+    
 
     let mut array_id: u32 = 1;
     unsafe {
@@ -208,8 +223,6 @@ fn main() {
     let arc_mouse_delta = Arc::new(Mutex::new((0f32, 0f32)));
     // Make a reference of this tuple to send to the render thread
     let mouse_delta = Arc::clone(&arc_mouse_delta);
-    let mut mouse_pos_x = 0.0;
-    let mut mouse_pos_y = 0.0;
 
     // Set up shared tuple for tracking changes to the window size
     let arc_window_size = Arc::new(Mutex::new((INITIAL_SCREEN_W, INITIAL_SCREEN_H, false)));
@@ -247,6 +260,182 @@ fn main() {
         }
 
         // == // Set up your VAO around here
+
+        // ------------Set 1 of vertices and indices---------------
+        // let vertices: Vec<f32> = vec![-0.6,-0.6, -10.0, 
+        //                                0.6,-0.6, -10.0, 
+        //                                0.0, 0.6, -10.0, 
+        //                                1.0, 1.0, -10.0, 
+        //                                2.0, 1.5, -10.0,
+        //                                0.0, 2.0, -10.0,
+        //                               -1.0, 1.0, -10.0,
+        //                               -1.0, 2.0, -10.0,
+        //                               -2.0, 1.0, -10.0,
+        //                               -2.0,-2.0, -10.0,
+        //                                0.0,-2.0, -10.0,
+        //                               -1.0,-1.0, -10.0,
+        //                                1.0,-2.0, -10.0,
+        //                                3.0, 0.0, -10.0,
+        //                                1.0, 0.0, -10.0];
+        // let indices: Vec<u32> = vec![0, 1, 2,
+        //                             3, 4, 5,
+        //                             6, 7, 8,
+        //                             9, 10, 11,
+        //                             12, 13 ,14];
+        // let colours: Vec<f32> = vec![
+        //                         1.0,0.0,0.0,1.0,
+        //                         1.0,1.0,0.0,1.0,
+        //                         1.0,0.0,1.0,1.0,
+        //                         1.0,0.0,0.0,1.0,
+        //                         1.0,1.0,0.0,1.0,
+        //                         0.0,1.0,1.0,1.0,
+        //                         1.0,0.0,0.0,1.0,
+        //                         1.0,1.0,0.0,1.0,
+        //                         0.0,1.0,0.0,1.0,
+        //                         1.0,0.0,1.0,1.0,
+        //                         0.0,1.0,1.0,1.0,
+        //                         0.0,1.0,0.0,1.0,
+        //                         0.0,1.0,0.0,1.0,
+        //                         1.0,0.0,1.0,1.0,
+        //                         0.0,1.0,1.0,1.0,
+        //                         ];
+                                            
+
+
+
+        // ------------Set 2 of vertices and indices---------------
+        // let vertices: Vec<f32> = vec![0.6, -0.8, -1.2,
+        //                             0.0, 0.4, 0.0,
+        //                             -0.8, -0.2, 1.2];
+        // let indices: Vec<u32> = vec![0, 1, 2];
+        // let colours: Vec<f32> = vec![
+        //         1.0,0.0,0.0,1.0,
+        //         1.0,0.0,0.0,1.0,
+        //         1.0,0.0,0.0,1.0,
+        //         ];
+
+        // ------------Set 3 of vertices and indices---------------
+        // let vertices: Vec<f32> = create_circle(40);
+        // let indices: Vec<u32> = genereate_circle_indices(40);
+
+        // ----------Print elements in vertices and indices--------  
+        // for element in indices.iter() {
+        //     println!("{}", element);
+        // }
+        // for element in vertices.iter() {
+        //     println!("{}", element);
+        // }
+
+
+        // ------------Set 4 of vertices and indices---------------
+        // let vertices: Vec<f32> = vec![  0.0, -0.6, 0.0, 
+        //                                 1.2, -0.6, 0.0, 
+        //                                 1.6,  0.6, 0.0,
+        //                                -0.6, -0.6, 1.0, 
+        //                                 0.6, -0.6, 1.0, 
+        //                                 1.0,  0.6, 1.0, 
+        //                                 0.2,  0.0, 2.0, 
+        //                                 1.4,  0.0, 2.0, 
+        //                                 1.8,  1.2, 2.0];
+        // let indices: Vec<u32> = vec![
+        //                             6, 7, 8,
+        //                             3, 4, 5,
+        //                             0, 1, 2,
+        //                                     ];
+        // let colours: Vec<f32> = vec![
+        //                         1.0,0.0,0.0,0.5,
+        //                         1.0,0.0,0.0,0.5,
+        //                         1.0,0.0,0.0,0.5,
+        //                         0.0,1.0,0.0,0.5,
+        //                         0.0,1.0,0.0,0.5,
+        //                         0.0,1.0,0.0,0.5,
+        //                         0.0,0.0,1.0,0.5,
+        //                         0.0,0.0,1.0,0.5,
+        //                         0.0,0.0,1.0,0.5];
+
+        // ------------Set 5 of vertices and indices---------------
+        // let vertices: Vec<f32> = vec![  0.0,  2.0, 3.0, 
+        //                                -2.0,  1.0, 3.0, 
+        //                                 1.0, -2.0, 3.0,];
+        // let indices: Vec<u32> = vec![
+        //                             0, 1, 2,];
+        // let colours: Vec<f32> = vec![
+        //                         1.0,0.0,0.0,0.5,
+        //                         1.0,0.0,0.0,0.5,
+        //                         1.0,0.0,0.0,0.5,];
+
+        // ------------Set 6 Cube---------------
+        // let vertices: Vec<f32> = vec![
+        //     // front
+        //     49.0, 49.0,  -15.0,
+        //     51.0, 49.0,  -15.0,
+        //     51.0, 51.0,  -15.0,
+        //     49.0, 51.0,  -15.0,
+        //     // back
+        //     49.0, 49.0,  -13.0,
+        //     51.0, 49.0,  -13.0,
+        //     51.0, 51.0,  -13.0,
+        //     49.0, 51.0,  -13.0,
+        // ];
+        
+        // let colours: Vec<f32> = vec![
+        //     // front
+        //     1.0, 1.0, 1.0, 1.0,
+        //     1.0, 1.0, 1.0, 1.0,
+        //     1.0, 1.0, 1.0, 1.0,
+        //     1.0, 1.0, 1.0, 1.0,
+        //     // back  
+        //     1.0, 1.0, 1.0, 1.0,
+        //     1.0, 1.0, 1.0, 1.0,
+        //     1.0, 1.0, 1.0, 1.0,
+        //     1.0, 1.0, 1.0, 1.0,
+        // ];
+
+        // let vertices2: Vec<f32> = vec![
+        //     // front
+        //     59.0, 59.0,  -2.0,
+        //     61.0, 59.0,  -2.0,
+        //     61.0, 61.0,  -2.0,
+        //     59.0, 61.0,  -2.0,
+        //     // back
+        //     59.0, 59.0,  0.0,
+        //     61.0, 59.0,  0.0,
+        //     61.0, 61.0,  0.0,
+        //     59.0, 61.0,  0.0,
+        // ];
+        
+        // let colours2: Vec<f32> = vec![
+        //     // front
+        //     1.0, 0.0, 0.0, 1.0,
+        //     1.0, 0.0, 0.0, 1.0,
+        //     1.0, 0.0, 0.0, 1.0,
+        //     1.0, 0.0, 0.0, 1.0,
+        //     // back  
+        //     1.0, 0.0, 0.0, 1.0,
+        //     1.0, 0.0, 0.0, 1.0,
+        //     1.0, 0.0, 0.0, 1.0,
+        //     1.0, 0.0, 0.0, 1.0,
+        // ];
+
+        // let indices: Vec<u32> = vec![
+        //     7, 5, 6,
+        //     5, 7, 4,
+        //     0, 2, 1,
+        //     2, 0, 3,
+        //     1, 6, 5,
+        //     2, 6, 1,
+        //     4, 3, 0,
+        //     3, 4, 7,
+        //     1, 5, 4,
+        //     4, 0, 1,
+        //     3, 6, 2,
+        //     6, 3, 7
+        // ];
+
+        // let index_count = indices.len() as i32;   
+
+    
+        
 
         // Load lunar_surface object
         let terrain_mesh: mesh::Mesh = mesh::Terrain::load("./resources/lunarsurface.obj");
@@ -312,29 +501,36 @@ fn main() {
             };
 
 
-        let mut scene_node: mem::ManuallyDrop<std::pin::Pin<Box<SceneNode>>> = SceneNode::new();
-        let mut lunar_surface_node: mem::ManuallyDrop<std::pin::Pin<Box<SceneNode>>> = SceneNode::from_vao(lunar_surface, lunar_surface_index_count);
+        let mut scene_node = SceneNode::new();
+        let mut lunar_surface_node = SceneNode::from_vao(lunar_surface, lunar_surface_index_count);
         scene_node.add_child(&lunar_surface_node);
         
         // Initialization of variables
+        // let mut helicopter_root_node: mem::ManuallyDrop<std::pin::Pin<Box<SceneNode>>> = todo!();
+        // let mut body_node: mem::ManuallyDrop<std::pin::Pin<Box<SceneNode>>> = todo!();
+        // let mut door_node: mem::ManuallyDrop<std::pin::Pin<Box<SceneNode>>> = todo!();
+        // let mut main_rotor_node: mem::ManuallyDrop<std::pin::Pin<Box<SceneNode>>> = todo!();
+        // let mut tail_rotor_node: mem::ManuallyDrop<std::pin::Pin<Box<SceneNode>>> = todo!();
+
+        // Alternative 1
         let mut helicopter_vector: Vec<scene_graph::Node> = vec![];
-        for i in 0..1  {
-            let mut helicopter_root_node: mem::ManuallyDrop<std::pin::Pin<Box<SceneNode>>> = SceneNode::new();
+        for i in 0..5  {
+            let mut helicopter_root_node = SceneNode::new();
             lunar_surface_node.add_child(&helicopter_root_node);
-            let mut body_node: mem::ManuallyDrop<std::pin::Pin<Box<SceneNode>>> = SceneNode::from_vao(body, body_index_count);
+            let mut body_node = SceneNode::from_vao(body, body_index_count);
             helicopter_root_node.add_child(&body_node);
 
-            let mut door_node: mem::ManuallyDrop<std::pin::Pin<Box<SceneNode>>> = SceneNode::from_vao(door, door_index_count);
+            let mut door_node = SceneNode::from_vao(door, door_index_count);
             body_node.add_child(&door_node);
 
-            let mut main_rotor_node: mem::ManuallyDrop<std::pin::Pin<Box<SceneNode>>> = SceneNode::from_vao(main_rotor, main_rotor_index_count);
+            let mut main_rotor_node = SceneNode::from_vao(main_rotor, main_rotor_index_count);
             main_rotor_node.reference_point = glm::vec3(0.0, 2.0, 0.0);
             body_node.add_child(&main_rotor_node);
 
-            let mut tail_rotor_node: mem::ManuallyDrop<std::pin::Pin<Box<SceneNode>>> = SceneNode::from_vao(tail_rotor, tail_rotor_index_count);
+            let mut tail_rotor_node = SceneNode::from_vao(tail_rotor, tail_rotor_index_count);
             tail_rotor_node.reference_point = glm::vec3(0.35, 2.3, 10.4);
             body_node.add_child(&tail_rotor_node);
-            body_node.position = glm::vec3(0.0, 10.0, 0.0);
+            body_node.position.x = (i*20) as f32;
 
             helicopter_vector.push(helicopter_root_node);
         }
@@ -355,8 +551,6 @@ fn main() {
         let mut y_position: f32 = 0.0;
         let mut z_position: f32 = 0.0;
 
-        let mut rotation_speed: f32 = 0.0;
-
         let mut open_door:bool = false;
         let mut close_door:bool = false;
         let mut door_is_open: bool = false;
@@ -370,8 +564,6 @@ fn main() {
         let first_frame_time = std::time::Instant::now();
         let mut previous_frame_time = first_frame_time;
 
-        let mut window_width: u32 = INITIAL_SCREEN_W/2;
-        let mut window_height: u32 = INITIAL_SCREEN_H/2;
         loop {
             // Compute time passed since the previous frame and since the start of the program
             let now = std::time::Instant::now();
@@ -386,13 +578,9 @@ fn main() {
                     //window_aspect_ratio = new_size.0 as f32 / new_size.1 as f32;
                     (*new_size).2 = false;
                     println!("Window was resized to {}x{}", new_size.0, new_size.1);
-                    window_width = new_size.0/2;
-                    window_height = new_size.1/2;
                     unsafe { gl::Viewport(0, 0, new_size.0 as i32, new_size.1 as i32); }
                 }
             }
-
-            let body_node: &mut SceneNode = helicopter_vector[0].get_child(0);
 
             // Handle keyboard input
             if let Ok(keys) = pressed_keys.lock() {
@@ -401,33 +589,47 @@ fn main() {
                         // The `VirtualKeyCode` enum is defined here:
                         //    https://docs.rs/winit/0.25.0/winit/event/enum.VirtualKeyCode.html
 
-
-                        VirtualKeyCode::D => {
-                            body_node.position.x += 10.0*delta_time*body_node.rotation.y.cos();
-                            body_node.position.z -= 10.0*delta_time*body_node.rotation.y.sin();
+                        VirtualKeyCode::Up => {
+                            x_rotation -= 2.0*delta_time;
+                        }
+                        VirtualKeyCode::Down => {
+                            x_rotation += 2.0*delta_time;
+                        }
+                        VirtualKeyCode::Left => {
+                            y_rotation -= 2.0*delta_time;
+                        }
+                        VirtualKeyCode::Right => {
+                            y_rotation += 2.0*delta_time; 
                         }
                         VirtualKeyCode::A => {
-                            body_node.position.x -= 10.0*delta_time*body_node.rotation.y.cos();
-                            body_node.position.z += 10.0*delta_time*body_node.rotation.y.sin();
+                            x_position += 5.0*delta_time*y_rotation.cos();
+                            z_position += 5.0*delta_time*y_rotation.sin();
                         }
-                        // VirtualKeyCode::S => {
-                        //     body_node.position.x += 20.0*delta_time*body_node.rotation.x.cos()*body_node.rotation.y.sin();
-                        //     body_node.position.y -= 20.0*delta_time*body_node.rotation.x.sin();
-                        //     body_node.position.z += 20.0*delta_time*body_node.rotation.x.cos()*body_node.rotation.y.cos();
-                        // }
+                        VirtualKeyCode::D => {
+                            x_position -= 5.0*delta_time*y_rotation.cos();
+                            z_position -= 5.0*delta_time*y_rotation.sin();
+                        }
                         VirtualKeyCode::W => {
-                            body_node.position.x -= 20.0*delta_time*body_node.rotation.x.cos()*body_node.rotation.y.sin();
-                            body_node.position.y += 20.0*delta_time*body_node.rotation.x.sin();
-                            body_node.position.z -= 20.0*delta_time*body_node.rotation.x.cos()*body_node.rotation.y.cos();
+                            x_position -= 5.0*delta_time*x_rotation.sin()*y_rotation.sin();
+                            y_position -= 5.0*delta_time*x_rotation.cos();
+                            z_position += 5.0*delta_time*x_rotation.sin()*y_rotation.cos();
                         }
-
+                        VirtualKeyCode::S => {
+                            x_position += 5.0*delta_time*x_rotation.sin()*y_rotation.sin();
+                            y_position += 5.0*delta_time*x_rotation.cos();
+                            z_position -= 5.0*delta_time*x_rotation.sin()*y_rotation.cos();
+                        }
                         VirtualKeyCode::LShift => {
-                            body_node.position.y += 5.0*delta_time;
+                            x_position -= 20.0*delta_time*x_rotation.cos()*y_rotation.sin();
+                            y_position += 20.0*delta_time*x_rotation.sin();
+                            z_position += 20.0*delta_time*x_rotation.cos()*y_rotation.cos();
                         }
                         VirtualKeyCode::Space => {
-                            body_node.position.y -= 5.0*delta_time;
+                            x_position += 20.0*delta_time*x_rotation.cos()*y_rotation.sin();
+                            y_position -= 20.0*delta_time*x_rotation.sin();
+                            z_position -= 20.0*delta_time*y_rotation.cos()*x_rotation.cos();
                         }
-            
+
                         // Open door call
                         VirtualKeyCode::O => {
                             if !door_is_open{
@@ -448,79 +650,11 @@ fn main() {
                     }
                 }
             }
-
-            // KNASBOLL
-            x_position = -0.5*body_node.position.x;
-            y_position = -0.5*body_node.position.y;
-            z_position = -0.5*body_node.position.z;
-
             // Handle mouse movement. delta contains the x and y movement of the mouse since last frame in pixels
             if let Ok(mut delta) = mouse_delta.lock() {
 
                 // == // Optionally access the accumulated mouse movement between
                 // == // frames here with `delta.0` and `delta.1`
-                
-                let move_delta: f32 = 0.000001;
-                let rotation_delta: f32 = 0.0005;
-                // Update mouse position
-                mouse_pos_x += delta.0;
-                mouse_pos_y += delta.1;
-                
-                body_node.rotation.y -= move_delta*mouse_pos_x; 
-                body_node.rotation.x = -rotation_delta*mouse_pos_y; 
-                
-
-                // Handle max angle z
-                if body_node.rotation.z > 3.1415927/8.0
-                {
-                    body_node.rotation.z = 3.1415927/8.0;
-                }
-                else if body_node.rotation.z < -3.1415927/8.0
-                {
-                    body_node.rotation.z = -3.1415927/8.0;
-                }
-
-                body_node.rotation.z -= rotation_delta*delta.0/2.0;
-
-                // Straighten up helicopter if mouse hasnt moved
-                // if delta.0 == 0.0
-                // {
-                //     if body_node.rotation.z > rotation_delta
-                //     {
-                //         body_node.rotation.z -= rotation_delta;
-                //     }
-                //     else if body_node.rotation.z < rotation_delta
-                //     {
-                //         body_node.rotation.z += rotation_delta;
-                //     }
-                //     else 
-                //     {
-                //         body_node.rotation.z = 0.0;
-                //     }
-                // }
-
-                
-
-                // Handle max angle x
-                if body_node.rotation.x > 3.1415927/4.0
-                {
-                    body_node.rotation.x = 3.1415927/4.0;
-                }
-                else if body_node.rotation.x < -3.1415927/4.0
-                {
-                    body_node.rotation.x = -3.1415927/4.0;
-                }
-                
-                // if body_node.rotation.y > 3.1415927/8.0
-                // {
-                //     body_node.rotation.y = 3.1415927/8.0;
-                // }
-                // else if body_node.rotation.y < -3.1415927/8.0
-                // {
-                //     body_node.rotation.y = -3.1415927/8.0;
-                // }
-                x_rotation = -body_node.rotation.x;
-                y_rotation = -body_node.rotation.y;
 
                 *delta = (0.0, 0.0); // reset when done
             }
@@ -537,16 +671,31 @@ fn main() {
                 println!("Stopp!");
             }
 
-            let main_rotor: &mut SceneNode = body_node.get_child(1);
-            main_rotor.rotation.y += 0.01*elapsed;
-            if main_rotor.rotation.y > 2.0*3.141592{
-                main_rotor.rotation.y -= 2.0*3.141592;
-            }
 
-            let tail_rotor: &mut SceneNode = body_node.get_child(2);
-            tail_rotor.rotation.x += 0.01*elapsed;
-            if tail_rotor.rotation.x > 2.0*3.141592{
-                tail_rotor.rotation.x -= 2.0*3.141592;
+            let path: toolbox::Heading = toolbox::simple_heading_animation(elapsed);
+            let path: toolbox::Heading = toolbox::simple_heading_animation(elapsed);
+
+            for i in 0..5 {
+                let body_node = helicopter_vector[i].get_child(0);
+
+                body_node.rotation.x = path.pitch;
+                body_node.rotation.y = path.yaw;
+                body_node.rotation.z = path.roll;
+                body_node.position.x = path.x + (20*i) as f32;
+                body_node.position.z = path.z + (5*i) as f32;
+                
+                let main_rotor: &mut SceneNode = body_node.get_child(1);
+                main_rotor.rotation.y += 0.04*elapsed;
+                if main_rotor.rotation.y > 2.0*3.141592{
+                    main_rotor.rotation.y -= 2.0*3.141592;
+                }
+
+                let tail_rotor: &mut SceneNode = body_node.get_child(2);
+                tail_rotor.rotation.x += 0.04*elapsed;
+                if tail_rotor.rotation.x > 2.0*3.141592{
+                    tail_rotor.rotation.x -= 2.0*3.141592;
+                }
+
             }
 
             if open_door
@@ -617,20 +766,31 @@ fn main() {
                         (3.1415927 as f32)/(2.0 as f32),
                         1.0, 
                         1000.0);
-                
-                let follow_camera_offset: f32 = 12.0;
-                let follow_camera_rotation_x: f32 = 0.25;
-                let follow_camera_offset_x: f32 = -follow_camera_offset*(y_rotation).sin();
-                let follow_camera_offset_y: f32 = follow_camera_offset*(follow_camera_rotation_x+x_rotation).sin();
-                let follow_camera_offset_z: f32 = follow_camera_offset*(x_rotation+follow_camera_rotation_x).cos()*(y_rotation).cos();
 
-                let rotation_matrix_x: glm::Mat4 = glm::rotation(x_rotation+follow_camera_rotation_x, &glm::vec3(1.0, 0.0, 0.0));
+                let rotation_matrix_x: glm::Mat4 = glm::rotation(x_rotation, &glm::vec3(1.0, 0.0, 0.0));
                 let rotation_matrix_y: glm::Mat4 = glm::rotation(y_rotation, &glm::vec3(0.0, 1.0, 0.0)); 
-                let translation: glm::Mat4 = glm::translation(&glm::vec3(x_position-follow_camera_offset_x, y_position-follow_camera_offset_y, z_position-follow_camera_offset_z));
-                let view_projection: glm::Mat4 =  perspective * rotation_matrix_x * rotation_matrix_y * translation * scaler * identity;
+                let total_rotation: glm::Mat4 = rotation_matrix_x * rotation_matrix_y;
+                let translation: glm::Mat4 = glm::translation(&glm::vec3(x_position, y_position, z_position));
+                let view_projection: glm::Mat4 =  perspective * total_rotation * translation * scaler * identity;
                 
 
                 gl::FrontFace(gl::CCW); 
+                // == // Issue the necessary gl:: commands to draw your scene here
+                // gl::BindVertexArray(lunar_surface);
+                // gl::DrawElements(gl::TRIANGLES, lunar_surface_index_count, gl::UNSIGNED_INT, 0 as *const c_void);
+
+                // gl::BindVertexArray(body);
+                // gl::DrawElements(gl::TRIANGLES, body_index_count, gl::UNSIGNED_INT, 0 as *const c_void);
+
+                // gl::BindVertexArray(door);
+                // gl::DrawElements(gl::TRIANGLES, door_index_count, gl::UNSIGNED_INT, 0 as *const c_void);
+
+                // gl::BindVertexArray(main_rotor);
+                // gl::DrawElements(gl::TRIANGLES, main_rotor_index_count, gl::UNSIGNED_INT, 0 as *const c_void);
+
+                // gl::BindVertexArray(tail_rotor);
+                // gl::DrawElements(gl::TRIANGLES, tail_rotor_index_count, gl::UNSIGNED_INT, 0 as *const c_void);
+                
                 draw_scene(&scene_node, &view_projection,&identity, &shader_object);
             }
 
@@ -712,7 +872,6 @@ fn main() {
                 }
             }
             _ => { }
-            
         }
     });
 }

@@ -5,30 +5,33 @@ in layout(location = 1) vec4 colour;
 in layout(location = 2) vec3 normal;
 uniform layout(location=3) ivec2 WindowSize;
 uniform layout(location=4) float time;
-uniform layout(location=5) mat4 transformation;
+uniform layout(location=5) mat4 model_view_projection;
 uniform layout(location=6) mat4 model_matrix;
 out layout(location=0) vec4 VertexColour;
 out layout(location=1) vec3 VertexNormal;
+out layout(location=2) vec3 VertexPosition;
 
 void main()
 {
     // float aspect = float(WindowSize[0]) / float(WindowSize[1]);
-    // vec4 col1 = vec4(cos(time), aspect* sin(time), 0.0, 0.0);
-    // vec4 col2 = vec4( -sin(time), aspect* cos(time), 0.0, 0.0); // Scales Y-axis since window is stretched 800/600
-    // vec4 col3 = vec4(0.0, 0.0, 1.0, 0.0);
-    // vec4 col4 = vec4(0.0, 0.0, 0.0, 1.0);
-    // mat4 transformation = mat4(col1, col2, col3, col4); // sets columns of matrix n
+    
+    // Phong lighting
     mat3 normal_matrix = mat3(model_matrix);
-    vec3 new_normal = normalize(normal_matrix*normal);
+    vec3 new_normal = inverse(transpose(normal_matrix)) * normal;
 
     vec4 homogenous_coordinates = vec4(position, 1);
-    vec4 transformed = transformation*homogenous_coordinates;
+    vec4 transformed = model_view_projection*homogenous_coordinates;
     gl_Position = vec4(transformed); 
 
-    //VertexColour = vec4(normalize(normal),colour[3]);
     VertexColour = colour;
-    VertexNormal = normalize(new_normal);
+    VertexNormal = new_normal;
+    VertexPosition = position;
 
+
+
+    // Standard lighting
+    //vec3 new_normal = normalize(normal_matrix*normal);
+    //VertexColour = vec4(new_normal,colour[3]);
 }
 
 // RENDERDOC for debug
